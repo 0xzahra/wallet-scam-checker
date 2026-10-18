@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src https:; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="dark light">
+  <title>Wallet Scam-Token Checker — free, no signup, read-only</title>
+  <meta name="description" content="Paste a public Solana or EVM wallet address and see which tokens look known, unknown or suspicious. Free, no signup, no wallet connection. Heuristic scan only.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 9.3 8 11 4.6-1.7 8-6 8-11V5l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+      </div>
+      <h1>Wallet Scam-Token Checker</h1>
+      <p class="sub">Paste a <strong>public</strong> wallet address. See which tokens look known, unknown or suspicious. Free, no signup.</p>
+    </header>
+
+    <div class="banner safe" role="note">
+      <span class="banner-icon" aria-hidden="true">🔒</span>
+      <p><strong>We only read public data. Never share your seed phrase or private key. No wallet connection needed.</strong></p>
+    </div>
+
+    <form id="form" class="card" autocomplete="off" novalidate>
+      <label for="addr">Public wallet address</label>
+      <div class="input-row">
+        <input id="addr" name="addr" type="text" inputmode="text" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off"
+               placeholder="Solana address or 0x… EVM address" aria-describedby="hint msg">
+        <button id="go" class="btn primary" type="submit">Scan</button>
+      </div>
+      <p id="hint" class="hint">Solana (base58) and EVM (<code>0x…</code>, scanned on Ethereum + Base). Name services like .eth / .sol are not supported.</p>
+      <p id="msg" class="msg" role="alert" aria-live="polite" hidden></p>
+
+      <details class="adv">
+        <summary>Advanced</summary>
+        <label for="rpc">Custom Solana RPC URL (optional)</label>
+        <input id="rpc" type="url" spellcheck="false" autocomplete="off" placeholder="https://… (only if the default sources fail)">
+        <p class="hint">Your wallet address is sent to this RPC. Leave empty to use the free public RPC.</p>
+      </details>
+    </form>
+
+    <section id="status" class="card status" hidden aria-live="polite">
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="statusText">Scanning…</p>
+    </section>
+
+    <section id="results" hidden>
+      <div id="warnings"></div>
+      <div id="summary" class="card summary"></div>
+
+      <div class="advice card" role="note">
+        <h2>What to do with unknown &amp; suspicious tokens</h2>
+        <ul>
+          <li><strong>Don’t click links</strong> in token names, symbols or the airdrop message that came with them.</li>
+          <li><strong>Don’t swap, sell or “claim”</strong> tokens you don’t recognise — that is how drainer scams work.</li>
+          <li><strong>Don’t approve</strong> any wallet pop-up or spending permission tied to them.</li>
+          <li><strong>The safest move is to ignore them.</strong> You can hide them in your wallet; you don’t need to do anything else.</li>
+        </ul>
+      </div>
+
+      <div class="filters" role="tablist" aria-label="Filter tokens" id="filters"></div>
+      <div id="list" class="list"></div>
+      <button id="more" class="btn ghost" type="button" hidden>Show more</button>
+
+      <p class="disclaimer"><strong>This is a heuristic scan, not a guarantee.</strong> A token marked “Known” can still carry risk, and a “Suspicious” label can occasionally be a false alarm. Always do your own research.</p>
+    </section>
+
+    <section class="card how">
+      <h2>How it works</h2>
+      <ul>
+        <li>Runs entirely in your browser. No account, no tracking, nothing is stored.</li>
+        <li><strong>Solana:</strong> Jupiter holdings API (token balances; public Solana RPC as fallback) + Jupiter verified list + DexScreener (liquidity, age).</li>
+        <li><strong>EVM:</strong> Blockscout (balances) + DexScreener, <strong>Ethereum and Base only</strong>. Other EVM chains are not supported yet.</li>
+        <li>Token logos and links from token data are never loaded or opened, since those are what scammers abuse.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p class="cta-title">More from the builder</p>
+    <nav class="cta" aria-label="More projects">
+      <a class="cta-link" href="https://app.virtuals.io/virtuals/98791" target="_blank" rel="noopener noreferrer">EquityLens</a>
+      <a class="cta-link" href="https://0xzahra.github.io/agent-duel/web/" target="_blank" rel="noopener noreferrer">Agent Duel</a>
+      <a class="cta-link" href="https://x.com/0xarewah" target="_blank" rel="noopener noreferrer">X @0xarewah</a>
+    </nav>
+    <p class="fine">Free tool. Not financial advice. Heuristic only.</p>
+  </footer>
+
+  <script src="lib/core.js"></script>
+  <script src="lib/scanner.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
