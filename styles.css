@@ -44,7 +44,7 @@ code { background: var(--bg); padding: 1px 5px; border-radius: 5px; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 3s; } }
 .summary h2 { margin-bottom: 4px; }
 .summary .addr { color: var(--muted); font-size: .85rem; word-break: break-all; margin: 0 0 12px; }
-.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; }
 .stat { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; text-align: center; }
 .stat b { display: block; font-size: 1.5rem; line-height: 1.1; }
 .stat span { font-size: .78rem; color: var(--muted); }
@@ -67,6 +67,8 @@ code { background: var(--bg); padding: 1px 5px; border-radius: 5px; }
 .pill { flex: none; font-size: .74rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
 .pill.suspicious { background: color-mix(in srgb, var(--bad) 20%, var(--card)); color: var(--bad); }
 .pill.unknown { background: color-mix(in srgb, var(--unk) 20%, var(--card)); color: var(--unk); }
+.pill.postcoin { white-space: normal; text-align: center; max-width: 52%; background: color-mix(in srgb, #60a5fa 20%, var(--card)); color: #60a5fa; }
+@media (prefers-color-scheme: light) { .pill.postcoin { color: #1d4ed8; background: color-mix(in srgb, #3b82f6 14%, var(--card)); } }
 .pill.known { background: color-mix(in srgb, var(--ok) 20%, var(--card)); color: var(--ok); }
 .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); font-size: .84rem; margin: 6px 0 0; }
 .meta span { overflow-wrap: anywhere; }

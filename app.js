@@ -81,10 +81,13 @@
   });
 
   function render(kind, address, res) {
-    state.tokens = res.tokens.slice().sort((a, b) => ORDER[a.result.category] - ORDER[b.result.category]);
+    const rank = (t) => ORDER[t.result.category] + (t.result.kind === 'postcoin' ? 0.5 : 0);   // post coins after other unknowns
+    state.tokens = res.tokens.slice().sort((a, b) => rank(a) - rank(b));
     state.filter = state.tokens.some((t) => t.result.category === 'suspicious') ? 'suspicious' : 'all';
     state.shown = PAGE;
     const counts = core.summarize(state.tokens.map((t) => t.result));
+    counts.postcoin = core.countPostCoins(state.tokens.map((t) => t.result));
+    const otherUnknown = counts.unknown - counts.postcoin;
 
     // warnings
     els.warnings.replaceChildren();
@@ -96,14 +99,17 @@
     els.summary.appendChild(h('h2', null, 'Scan result'));
     els.summary.appendChild(h('p', 'addr', (kind === 'solana' ? 'Solana · ' : 'EVM (Ethereum + Base) · ') + address));
     const stats = h('div', 'stats');
-    [['suspicious', 'Suspicious', 'bad'], ['unknown', 'Unknown', 'unk'], ['known', 'Known / verified', 'ok']].forEach(([k, label, cls]) => {
-      const s = h('div', 'stat ' + cls); s.appendChild(h('b', null, String(counts[k]))); s.appendChild(h('span', null, label)); stats.appendChild(s);
+    [['suspicious', 'Suspicious', 'bad', counts.suspicious], ['unknown', 'Unknown', 'unk', otherUnknown], ['postcoin', 'Post coins', 'unk', counts.postcoin], ['known', 'Known / verified', 'ok', counts.known]].forEach(([k, label, cls, n]) => {
+      if (k === 'postcoin' && !n) return;
+      const s = h('div', 'stat ' + cls); s.appendChild(h('b', null, String(n))); s.appendChild(h('span', null, label)); stats.appendChild(s);
     });
     els.summary.appendChild(stats);
     let verdict;
     if (!counts.total) verdict = 'No tokens with a balance were found for this address.';
     else if (counts.suspicious) verdict = '🚩 ' + counts.suspicious + ' token' + (counts.suspicious > 1 ? 's look' : ' looks') + ' suspicious. Do not interact with ' + (counts.suspicious > 1 ? 'them' : 'it') + '.';
-    else if (counts.unknown) verdict = 'No obvious scam patterns, but ' + counts.unknown + ' token' + (counts.unknown > 1 ? 's are' : ' is') + ' unknown. Ignore anything you did not buy yourself.';
+    else if (otherUnknown) verdict = 'No obvious scam patterns, but ' + otherUnknown + ' token' + (otherUnknown > 1 ? 's are' : ' is') + ' unknown. Ignore anything you did not buy yourself.'
+      + (counts.postcoin ? ' (Plus ' + counts.postcoin + ' social post coin' + (counts.postcoin > 1 ? 's' : '') + ' — usually harmless.)' : '');
+    else if (counts.postcoin) verdict = 'No scam patterns found. ' + counts.postcoin + ' token' + (counts.postcoin > 1 ? 's are' : ' is') + ' social post coins (Zora / Base app) — usually harmless but illiquid.';
     else verdict = '✅ Everything found looks like an established token.';
     els.summary.appendChild(h('p', 'verdict', verdict));
     if (res.chains) {
@@ -121,7 +127,8 @@
 
   function renderFilters(counts) {
     els.filters.replaceChildren();
-    [['all', 'All', counts.total], ['suspicious', 'Suspicious', counts.suspicious], ['unknown', 'Unknown', counts.unknown], ['known', 'Known / verified', counts.known]].forEach(([k, label, n]) => {
+    [['all', 'All', counts.total], ['suspicious', 'Suspicious', counts.suspicious], ['unknown', 'Unknown', counts.unknown - (counts.postcoin || 0)],
+      ['postcoin', 'Post coins', counts.postcoin || 0], ['known', 'Known / verified', counts.known]].forEach(([k, label, n]) => {
       const b = h('button', 'chip', label + ' (' + n + ')');
       b.type = 'button'; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', String(state.filter === k));
       b.addEventListener('click', () => { state.filter = k; state.shown = PAGE; renderFilters(counts); renderList(); });
@@ -139,7 +146,7 @@
     const title = h('div', 'tname', core.safeDisplay(t.name || 'Unnamed token', 60));
     if (t.symbol) title.appendChild(h('span', 'tsym', '  ' + core.safeDisplay(t.symbol, 24)));
     head.appendChild(title);
-    head.appendChild(h('span', 'pill ' + r.category, r.label));
+    head.appendChild(h('span', 'pill ' + r.category + (r.kind ? ' ' + r.kind : ''), r.label));
     card.appendChild(head);
 
     const meta = h('div', 'meta');
@@ -153,7 +160,9 @@
     if (r.badges.length) { const p = h('p', 'meta'); r.badges.forEach((b) => p.appendChild(h('span', 'badge', b))); card.appendChild(p); }
     if (r.reasons.length) { const ul = h('ul', 'reasons'); r.reasons.forEach((x) => ul.appendChild(h('li', null, x))); card.appendChild(ul); }
     if (r.notes.length) { const ul = h('ul', 'reasons notes'); r.notes.forEach((x) => ul.appendChild(h('li', null, x))); card.appendChild(ul); }
-    if (r.category !== 'known') {
+    if (r.kind === 'postcoin') {
+      card.appendChild(h('p', 'meta', 'Post coins are normal on Zora / the Base app. Nothing to fix — you can ignore it, or sell on Zora if it has any value. Never click links inside the name.'));
+    } else if (r.category !== 'known') {
       card.appendChild(h('p', 'meta', flagged ? 'Do not click anything in this name. Do not swap, sell, claim or approve. Ignore it.' : 'Do not swap, sell, claim or approve. Ignoring it is safest.'));
     }
 
@@ -176,7 +185,9 @@
   }
 
   function renderList() {
-    const items = state.tokens.filter((t) => state.filter === 'all' || t.result.category === state.filter);
+    const match = (t) => state.filter === 'all' || (state.filter === 'postcoin' ? t.result.kind === 'postcoin'
+      : state.filter === 'unknown' ? t.result.category === 'unknown' && t.result.kind !== 'postcoin' : t.result.category === state.filter);
+    const items = state.tokens.filter(match);
     els.list.replaceChildren();
     if (!items.length) els.list.appendChild(h('p', 'empty', 'Nothing in this category.'));
     items.slice(0, state.shown).forEach((t) => els.list.appendChild(tokenCard(t)));
