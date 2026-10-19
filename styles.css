@@ -89,3 +89,13 @@ a.linkbtn { color: var(--muted); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (min-width: 560px) { .wrap { padding-top: 40px; } .stats { gap: 12px; } }
 @media (max-width: 380px) { .input-row { flex-direction: column; } .btn.primary { width: 100%; } }
+
+.pill.airdropspam { background: color-mix(in srgb, var(--bad) 28%, var(--card)); }
+.why { margin: 10px 0 0; padding-top: 8px; border-top: 1px dashed var(--line); }
+.why-summary { margin: 0 0 6px; font-size: .9rem; }
+.conf { display: inline-block; margin-left: 8px; font-size: .72rem; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.evidence { list-style: none; margin: 4px 0 0; padding: 0; font-size: .86rem; }
+.ev { display: flex; gap: 8px; margin: 4px 0; align-items: flex-start; } .ev-icon { flex: none; width: 1.3em; text-align: center; } .ev-text { overflow-wrap: anywhere; }
+.ev-info .ev-text { color: var(--muted); }
+.checked { margin-top: 6px; font-size: .8rem; color: var(--muted); } .checked summary { cursor: pointer; }
+.checked-list { margin: 4px 0 0; padding-left: 18px; } .chk-unavailable, .chk-skipped { opacity: .75; }

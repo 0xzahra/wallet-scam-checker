@@ -69,7 +69,7 @@
     els.results.hidden = true;
     setBusy(true, 'Starting scan…');
     try {
-      const opts = { onProgress: (t) => { els.statusText.textContent = t; } };
+      const opts = { onProgress: (t) => { els.statusText.textContent = t; }, cacheLists: true };
       if (rpc) opts.rpcUrls = [rpc];
       const res = await scanner.scan(r.kind, r.address, opts);
       render(r.kind, r.address, res);
@@ -104,9 +104,10 @@
       const s = h('div', 'stat ' + cls); s.appendChild(h('b', null, String(n))); s.appendChild(h('span', null, label)); stats.appendChild(s);
     });
     els.summary.appendChild(stats);
+    const spamN = state.tokens.filter((t) => t.result.kind === 'airdropspam').length;
     let verdict;
     if (!counts.total) verdict = 'No tokens with a balance were found for this address.';
-    else if (counts.suspicious) verdict = '🚩 ' + counts.suspicious + ' token' + (counts.suspicious > 1 ? 's look' : ' looks') + ' suspicious. Do not interact with ' + (counts.suspicious > 1 ? 'them' : 'it') + '.';
+    else if (counts.suspicious) verdict = '🚩 ' + counts.suspicious + ' token' + (counts.suspicious > 1 ? 's look' : ' looks') + ' suspicious' + (spamN ? ' (' + spamN + ' of them look like airdrop spam: no usable market, probably sent to you unsolicited)' : '') + '. Do not interact with ' + (counts.suspicious > 1 ? 'them' : 'it') + '. These are heuristic labels, not proof — open a token to see exactly why.';
     else if (otherUnknown) verdict = 'No obvious scam patterns, but ' + otherUnknown + ' token' + (otherUnknown > 1 ? 's are' : ' is') + ' unknown. Ignore anything you did not buy yourself.'
       + (counts.postcoin ? ' (Plus ' + counts.postcoin + ' social post coin' + (counts.postcoin > 1 ? 's' : '') + ' — usually harmless.)' : '');
     else if (counts.postcoin) verdict = 'No scam patterns found. ' + counts.postcoin + ' token' + (counts.postcoin > 1 ? 's are' : ' is') + ' social post coins (Zora / Base app) — usually harmless but illiquid.';
@@ -152,14 +153,39 @@
     const meta = h('div', 'meta');
     meta.appendChild(h('span', null, 'Balance: ' + t.balance));
     meta.appendChild(h('span', null, (t.chainLabel || 'Solana') + ' · ' + (t.type || 'token')));
-    if (r.bestPoolUsd != null && r.pairCount > 0) meta.appendChild(h('span', null, 'Top pool liquidity: ' + core.fmtUsd(r.bestPoolUsd)));
+    if (r.bestPoolUsd != null && r.pairCount > 0) {
+      meta.appendChild(h('span', null, r.hollowPool ? 'Pool shows ' + core.fmtUsd(r.rawPoolUsd) + ' but only ~' + core.fmtUsd(r.bestPoolUsd / 2) + ' is real' : 'Top pool liquidity: ' + core.fmtUsd(r.bestPoolUsd)));
+    }
     if (r.ageDays != null) meta.appendChild(h('span', null, 'Trading for: ' + core.fmtAge(r.ageDays)));
     meta.appendChild(h('span', null, shortAddr(t.address)));
     card.appendChild(meta);
 
     if (r.badges.length) { const p = h('p', 'meta'); r.badges.forEach((b) => p.appendChild(h('span', 'badge', b))); card.appendChild(p); }
-    if (r.reasons.length) { const ul = h('ul', 'reasons'); r.reasons.forEach((x) => ul.appendChild(h('li', null, x))); card.appendChild(ul); }
-    if (r.notes.length) { const ul = h('ul', 'reasons notes'); r.notes.forEach((x) => ul.appendChild(h('li', null, x))); card.appendChild(ul); }
+
+    // Why this label: one-sentence verdict, confidence, then every signal (risk / trust / info) and what was checked.
+    const why = h('div', 'why');
+    if (r.summary) {
+      const line = h('p', 'why-summary');
+      line.appendChild(h('strong', null, 'Why: '));
+      line.appendChild(document.createTextNode(r.summary));
+      if (r.confidence) line.appendChild(h('span', 'conf conf-' + r.confidence, 'Confidence: ' + r.confidence + (r.category === 'suspicious' ? ' · heuristic, not proof' : '')));
+      why.appendChild(line);
+    }
+    const ICON = { risk: '🚩', ok: '✅', info: 'ℹ️' };
+    const items = r.evidence && r.evidence.length ? r.evidence : r.reasons.map((x) => ({ sev: 'info', text: x })).concat(r.notes.map((x) => ({ sev: 'info', text: x })));
+    if (items.length) {
+      const ul = h('ul', 'evidence');
+      items.forEach((e) => { const li = h('li', 'ev ev-' + e.sev); li.appendChild(h('span', 'ev-icon', ICON[e.sev] || 'ℹ️')); li.appendChild(h('span', 'ev-text', e.text)); ul.appendChild(li); });
+      why.appendChild(ul);
+    }
+    if (r.checked && r.checked.length) {
+      const d = h('details', 'checked');
+      d.appendChild(h('summary', null, 'What was checked (' + r.checked.filter((c) => c.status === 'ok').length + '/' + r.checked.length + ' sources had data)'));
+      const ul = h('ul', 'checked-list');
+      r.checked.forEach((c) => ul.appendChild(h('li', 'chk chk-' + c.status, c.name + ': ' + c.detail)));
+      d.appendChild(ul); why.appendChild(d);
+    }
+    card.appendChild(why);
     if (r.kind === 'postcoin') {
       card.appendChild(h('p', 'meta', 'Post coins are normal on Zora / the Base app. Nothing to fix — you can ignore it, or sell on Zora if it has any value. Never click links inside the name.'));
     } else if (r.category !== 'known') {
